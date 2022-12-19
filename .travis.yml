@@ -1,0 +1,18 @@
+sudo: required
+services:
+  - docker
+
+# build a test version of our current project and run some tests
+# use dockerfile.dev
+before_install:
+  - docker build -t minhsiungw/react-test -f ./client/Dockerfile.dev ./client
+
+# if exit with status other than 0, failed
+script:
+  - docker run -e CI=true minhsiungw/react-test npm test
+
+after_success:
+  - docker build -t minhsiungw/multi-client ./client
+  - docker build -t minhsiungw/multi-nginx ./nginx
+  - docker build -t minhsiungw/multi-server ./server
+  - docker build -t minhsiungw/multi-worker ./worker

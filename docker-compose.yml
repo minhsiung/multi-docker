@@ -1,0 +1,61 @@
+version: '3'
+services:
+  postgres:
+    image: 'postgres:latest'
+    environment:
+      - POSTGRES_PASSWORD=postgres_password
+
+  redis:
+    image: 'redis:latest'
+
+  nginx:
+    restart: always
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./nginx
+    ports:
+      # 3050 on localhost 80 in the container
+      - '3050:80'
+
+  api:
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./server
+    volumes:
+      # inside the container, don't override it or redirect access to it
+      - /app/node_modules
+      # anytime out application try to access anything in /app, it's gonna be redirected to ./server
+      # (except node_modules)
+      - ./server:/app
+    # key (values retrieved from local computer)
+    # key=value
+    environment:
+      # url server uses to connect to Redis
+      # the name of the service defined on line 8
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PGUSER=postgres
+      - PGHOST=postgres
+      - PGDATABASE=postgres
+      - PGPASSWORD=postgres_password
+      - PGPORT=5432
+    
+  client:
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./client
+    volumes:
+      - /app/node_modules
+      - ./client:/app
+    environment:
+      - WDS_SOCKET_PORT=0
+  worker:
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./worker
+    volumes:
+      - /app/node_modules
+      - ./worker:/app 
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
